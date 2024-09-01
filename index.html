@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cute Candy Crush with Blast Ball</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #FFD1DC;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            text-align: center;
+        }
+        #game-board {
+            display: inline-grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            gap: 2px;
+            background-color: #FFF0F5;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .candy {
+            width: 50px;
+            height: 50px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+        }
+        .candy:hover {
+            transform: scale(1.1);
+        }
+        #score {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #FF69B4;
+        }
+        @keyframes matchAnimation {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+        .matching {
+            animation: matchAnimation 0.5s ease-out;
+        }
+        .blast-ball {
+            background: radial-gradient(circle, #FFD700, #FFA500);
+            border: 2px solid #FF4500;
+            box-shadow: 0 0 10px #FFD700;
+        }
+        @keyframes blastAnimation {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(2); opacity: 0.7; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+        .blasting {
+            animation: blastAnimation 0.7s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>Cute Candy Crush</h1>
+        <div id="score">Score: <span id="score-value">0</span></div>
+        <div id="game-board"></div>
+    </div>
+
+    <script>
+        const candies = ['🍬', '🍭', '🍫', '🍩', '🍪', '🧁'];
+        const blastBall = '💥';
+        let score = 0;
+        let selectedCandy = null;
+        const boardSize = 8;
+        const board = [];
+
+        function initializeBoard() {
+            const gameBoard = document.getElementById('game-board');
+            for (let i = 0; i < boardSize; i++) {
+                board[i] = [];
+                for (let j = 0; j < boardSize; j++) {
+                    const candy = document.createElement('div');
+                    candy.className = 'candy';
+                    candy.textContent = getRandomCandy();
+                    candy.addEventListener('click', () => onCandyClick(i, j));
+                    gameBoard.appendChild(candy);
+                    board[i][j] = candy;
+                }
+            }
+        }
+
+        function getRandomCandy() {
+            return candies[Math.floor(Math.random() * candies.length)];
+        }
+
+        function onCandyClick(row, col) {
+            if (!selectedCandy) {
+                selectedCandy = { row, col };
+                board[row][col].style.border = '2px solid #FF69B4';
+            } else {
+                const prevRow = selectedCandy.row;
+                const prevCol = selectedCandy.col;
+                if (isAdjacent(prevRow, prevCol, row, col)) {
+                    swapCandies(prevRow, prevCol, row, col);
+                    if (!checkForMatches()) {
+                        swapCandies(prevRow, prevCol, row, col);
+                    }
+                }
+                board[prevRow][prevCol].style.border = 'none';
+                selectedCandy = null;
+            }
+        }
+
+        function isAdjacent(row1, col1, row2, col2) {
+            return (Math.abs(row1 - row2) === 1 && col1 === col2) ||
+                   (Math.abs(col1 - col2) === 1 && row1 === row2);
+        }
+
+        function swapCandies(row1, col1, row2, col2) {
+            const temp = board[row1][col1].textContent;
+            board[row1][col1].textContent = board[row2][col2].textContent;
+            board[row2][col2].textContent = temp;
+        }
+
+        function checkForMatches() {
+            let matched = false;
+            const matchedCandies = new Set();
+
+            function checkAndAddMatch(row, col) {
+                matchedCandies.add(`${row},${col}`);
+            }
+
+            // Check horizontal matches
+            for (let i = 0; i < boardSize; i++) {
+                let matchLength = 1;
+                for (let j = 1; j < boardSize; j++) {
+                    if (board[i][j].textContent === board[i][j-1].textContent) {
+                        matchLength++;
+                    } else {
+                        if (matchLength >= 3) {
+                            for (let k = j - matchLength; k < j; k++) {
+                                checkAndAddMatch(i, k);
+                            }
+                            matched = true;
+                        }
+                        matchLength = 1;
+                    }
+                }
+                if (matchLength >= 3) {
+                    for (let k = boardSize - matchLength; k < boardSize; k++) {
+                        checkAndAddMatch(i, k);
+                    }
+                    matched = true;
+                }
+            }
+
+            // Check vertical matches
+            for (let j = 0; j < boardSize; j++) {
+                let matchLength = 1;
+                for (let i = 1; i < boardSize; i++) {
+                    if (board[i][j].textContent === board[i-1][j].textContent) {
+                        matchLength++;
+                    } else {
+                        if (matchLength >= 3) {
+                            for (let k = i - matchLength; k < i; k++) {
+                                checkAndAddMatch(k, j);
+                            }
+                            matched = true;
+                        }
+                        matchLength = 1;
+                    }
+                }
+                if (matchLength >= 3) {
+                    for (let k = boardSize - matchLength; k < boardSize; k++) {
+                        checkAndAddMatch(k, j);
+                    }
+                    matched = true;
+                }
+            }
+
+            if (matched) {
+                animateAndRemoveMatches(matchedCandies);
+            }
+
+            return matched;
+        }
+
+        function animateAndRemoveMatches(matchedCandies) {
+            matchedCandies.forEach(coord => {
+                const [row, col] = coord.split(',').map(Number);
+                board[row][col].classList.add('matching');
+            });
+
+            setTimeout(() => {
+                const matchedList = Array.from(matchedCandies);
+                if (matchedList.length >= 6) {
+                    const [blastRow, blastCol] = matchedList[0].split(',').map(Number);
+                    const candyType = board[blastRow][blastCol].textContent;
+                    createBlastBall(blastRow, blastCol, candyType);
+                }
+
+                matchedCandies.forEach(coord => {
+                    const [row, col] = coord.split(',').map(Number);
+                    removeCandy(row, col);
+                });
+
+                score += matchedCandies.size * 10;
+                updateScore();
+                setTimeout(fillBoard, 100);
+            }, 500);
+        }
+
+        function createBlastBall(row, col, candyType) {
+            board[row][col].textContent = blastBall;
+            board[row][col].classList.add('blast-ball');
+            board[row][col].dataset.candyType = candyType;
+        }
+
+        function removeCandy(row, col) {
+            board[row][col].textContent = '';
+            board[row][col].classList.remove('matching', 'blast-ball');
+            delete board[row][col].dataset.candyType;
+        }
+
+        function fillBoard() {
+            for (let j = 0; j < boardSize; j++) {
+                let emptySpaces = 0;
+                for (let i = boardSize - 1; i >= 0; i--) {
+                    if (board[i][j].textContent === '') {
+                        emptySpaces++;
+                    } else if (emptySpaces > 0) {
+                        board[i + emptySpaces][j].textContent = board[i][j].textContent;
+                        if (board[i][j].classList.contains('blast-ball')) {
+                            board[i + emptySpaces][j].classList.add('blast-ball');
+                            board[i + emptySpaces][j].dataset.candyType = board[i][j].dataset.candyType;
+                            board[i][j].classList.remove('blast-ball');
+                            delete board[i][j].dataset.candyType;
+                        }
+                        board[i][j].textContent = '';
+                    }
+                }
+                for (let i = 0; i < emptySpaces; i++) {
+                    board[i][j].textContent = getRandomCandy();
+                }
+            }
+            checkForMatches();
+        }
+
+        function updateScore() {
+            document.getElementById('score-value').textContent = score;
+        }
+
+        function activateBlastBall(row, col) {
+            const candyType = board[row][col].dataset.candyType;
+            const blastCandies = new Set();
+
+            for (let i = 0; i < boardSize; i++) {
+                for (let j = 0; j < boardSize; j++) {
+                    if (board[i][j].textContent === candyType || board[i][j].textContent === blastBall) {
+                        blastCandies.add(`${i},${j}`);
+                    }
+                }
+            }
+
+            blastCandies.forEach(coord => {
+                const [r, c] = coord.split(',').map(Number);
+                board[r][c].classList.add('blasting');
+            });
+
+            setTimeout(() => {
+                blastCandies.forEach(coord => {
+                    const [r, c] = coord.split(',').map(Number);
+                    removeCandy(r, c);
+                });
+                score += blastCandies.size * 20;
+                updateScore();
+                setTimeout(fillBoard, 100);
+            }, 700);
+        }
+
+        function onCandyClick(row, col) {
+            if (board[row][col].textContent === blastBall) {
+                activateBlastBall(row, col);
+                return;
+            }
+
+            if (!selectedCandy) {
+                selectedCandy = { row, col };
+                board[row][col].style.border = '2px solid #FF69B4';
+            } else {
+                const prevRow = selectedCandy.row;
+                const prevCol = selectedCandy.col;
+                if (isAdjacent(prevRow, prevCol, row, col)) {
+                    swapCandies(prevRow, prevCol, row, col);
+                    if (!checkForMatches()) {
+                        swapCandies(prevRow, prevCol, row, col);
+                    }
+                }
+                board[prevRow][prevCol].style.border = 'none';
+                selectedCandy = null;
+            }
+        }
+
+        initializeBoard();
+    </script>
+</body>
+</html>
